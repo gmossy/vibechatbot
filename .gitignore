@@ -1,0 +1,27 @@
+# Environments
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Docker data volume mappings
+middleware/data/
+openwebui_data/
+Ollama_data/
+data/
+
+# Mac OS
+.DS_Store
+
+# Generated Files
+generated_files/
+
+# Secrets
+.env

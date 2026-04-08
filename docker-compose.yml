@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: mossy-openwebui
+    ports:
+      - "3000:8080"
+    environment:
+      - OPENAI_API_BASE_URL=http://middleware:8000/v1
+      - OPENAI_API_KEY=mossy-secret-key
+      - HF_TOKEN=${HF_TOKEN}
+      - DEFAULT_MODELS=gemma4
+      - WEBUI_AUTH=false
+    volumes:
+      - openwebui_data:/app/backend/data
+    depends_on:
+      - middleware
+    restart: always
+
+  middleware:
+    build:
+      context: ./middleware
+      dockerfile: Dockerfile
+    container_name: mossy-middleware
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./middleware/app:/app/app
+    environment:
+      # Use http://host.docker.internal:11434 if running Ollama natively on Mac
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - HF_TOKEN=${HF_TOKEN}
+    depends_on:
+      - ollama
+    restart: always
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: mossy-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: always
+    # -----------------------------------------------------------------------------------------
+    # IMPORTANT MAC M5 PRO MAX GPU NOTE:
+    # Docker Desktop on macOS does NOT pass through the Apple Silicon Metal GPU to containers. 
+    # Running Ollama in this Docker container will use your CPU and be very slow.
+    # 
+    # For optimal performance (making it as fast as ChatGPT):
+    # 1. Download and install Ollama for Mac natively from https://ollama.com
+    # 2. Run `OLLAMA_HOST=0.0.0.0 ollama serve` in a terminal window.
+    # 3. Change `OLLAMA_BASE_URL` in the `middleware` service (above) to point to your Mac:
+    #    - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    # 4. Comment out or delete this `ollama` block from the docker-compose.yml.
+    # -----------------------------------------------------------------------------------------
+    
+volumes:
+  openwebui_data:
+  ollama_data:
