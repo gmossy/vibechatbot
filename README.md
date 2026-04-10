@@ -1,149 +1,99 @@
-# Mossy Chatbot
+# 🤖 Mossy Chatbot (V2)
+**Production-Grade Agentic RAG Pipeline with Docling & LangGraph**
 
-**Version**: 1.0.0  
-**Date**: April 7, 2026  
 **Author**: Glenn Mossy, AI and Machine Learning Engineer  
+**Tech Stack**: Python 3.12+, FastAPI, LangGraph, Docling 2.x, FAISS, Ollama, Logfire
 
 ---
 
 ## 🌟 Executive Summary
-Mossy Chatbot is a truly state-of-the-art Agentic Chat application built to operate 100% locally and securely. It bridges the breathtaking aesthetics of the ChatGPT-clone **OpenWebUI** with a highly sophisticated **LangGraph** Python architecture. 
+Mossy Chatbot is a state-of-the-art Agentic Chat application built to operate locally and securely. It bridges the aesthetics of **OpenWebUI** with a sophisticated **LangGraph** Python architecture. 
 
-It handles advanced mathematical calculations, dynamic multimodal generation (PDF/Word), and real-time knowledge synthesis through an integrated **FAISS Vector RAG Engine**, stabilized by an **Evaluator-Optimizer loop** for reliable tool execution—all powered locally via **Google's Gemma** Large Language Model.
-
----
-
-## 🧩 Architectural Diagram
-
-The system employs a cyclical graph-based multi-agent architecture utilizing an **Evaluator-Optimizer** loop to verify tool outputs before final delivery.
-
-```mermaid
-graph TD
-    User([User]) <--> UI[OpenWebUI Frontend]
-    UI <-->|REST API /v1/chat/completions| API[FastAPI Middleware]
-    
-    subgraph FastAPI Middleware Environment
-        API <--> LG[LangGraph Agent Engine]
-        LG --> CoT[Reasoning Node]
-        CoT --> Tools[Agentic Tool Calling]
-        Tools --> Verifier{Verifier Node}
-        Verifier -->|Success| CoT
-        Verifier -->|Fail/Error| CoT
-        
-        Tools --> PDF[PDF Creator]
-        Tools --> Word[Docx Creator]
-        Tools --> Calc[Math Evaluator]
-        Tools --> Terminal[Verify Terminal Execution]
-    end
-    
-    LG <-->|Langchain Bindings| Ollama[Ollama Engine]
-    Ollama <--> Gemma[(Gemma:7b LLM)]
-    
-    User -->|Upload Documents & Code| API
-    API -->|Ingest & Chunk| RAG
-```
+It features an **Optimal RAG Pipeline** powered by **Docling 2.x**, enabling high-quality ingestion of multi-format documents (PDFs with OCR, Excel, Word, XML, Source Code) into a layout-aware **FAISS Vector Engine**.
 
 ---
 
-## 🗂️ Repository Structure
-
-```text
-mossychatbot/
-│
-├── docker-compose.yml              # Core container deployment manifest
-├── init-ollama.sh                  # Shell script for automated model fetching
-├── README.md                       # Architectural Documentation
-│
-└── middleware/                     # The Python Agent Layer
-    ├── Dockerfile                  # Container compilation instructions for UV and 3.13
-    ├── requirements.txt            # Explicit dependency pinning
-    │
-    └── app/
-        ├── main.py                 # FastAPI Application Factory & Routing
-        │
-        ├── api/
-        │   └── routers/
-        │       ├── chat.py         # OpenAI-compatible streaming completion route
-        │       └── documents.py    # Custom RAG ingestion endpoints
-        │
-        ├── core/
-        │   └── config.py           # Dave Ebbelaar style pydantic configurations
-        │
-        ├── models/
-        │   └── schemas.py          # Unified DTO & payload serialization schemas
-        │
-        └── services/
-            ├── agent_service.py    # LangGraph StateGraph engine with CoT constraints
-            ├── llm_service.py      # Bridging layer for stream conversions
-            ├── rag_service.py      # Internal FAISS indexing, ingestion, and search
-            └── tools.py            # Custom math, pdf, and word generation logic
-```
-
----
-
-## 🛠️ Installation & Setup Prerequisites
-
-To utilize the full capabilities of the Mossy Chatbot, ensure you are running on an Apple Silicon Mac (M-Series) with a minimum of 16GB Unified RAM (48GB recommended for larger vision models), and have Docker Desktop installed.
-
-### System Prerequisites (OCR & Parsing)
-For advanced document parsing and image recognition, install the following binaries via Homebrew:
-```bash
-brew install tesseract
-```
+## 🚀 Quick Start (Clone & Run)
 
 ### 1. Clone the Repository
-Open a terminal and clone the repository directly from GitHub:
 ```bash
 git clone https://github.com/gmossy/mossychatbot.git
 cd mossychatbot
 ```
 
-### 2. (Optional) Run the Local Python Environment Directly
-If you wish to test the API decoupled from Docker, use `uv` for blazing-fast 3.13 compilation:
+### 2. Configure the Environment
+Create a `.env` file in the root directory. You can copy the template:
 ```bash
-# Enter the middleware domain
-cd middleware
-
-# Establish the exact Python 3.13 environment seamlessly via UV
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source $HOME/.local/bin/env
-uv venv --python 3.13 .venv
-
-# Activate and Install Requirements instantaneously
-source .venv/bin/activate
-uv pip install -r requirements.txt
-
-# Start the Fast API 
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+cp middleware/.env.example .env
 ```
 
-### 3. Deploy Production Stack via Docker
-The simplest way to use OpenWebUI is to spool up the entire integrated ecosystem via our customized docker orchestration.
+**Required Parameters:**
+- `HF_TOKEN`: Your HuggingFace Token (required for embedding models).
+- `LOGFIRE_TOKEN`: (Optional) Your Logfire project token for distributed tracing.
+- `OLLAMA_BASE_URL`: Defaults to `http://ollama:11434` for Docker, or `http://localhost:11434` for local dev.
+
+### 3. Build & Run (Docker)
+The project is fully orchestrated via a centralized `Makefile`:
 
 ```bash
-cd mossychatbot
+# Build the images (no-cache to ensure latest Docling/dependencies)
+make build
 
-# Initialize the containers in detached mode
-docker compose up -d --build
+# Start the full stack (OpenWebUI + Middleware + Ollama)
+make up
+
+# Watch the logs
+make logs
 ```
 
 ---
 
-## 📡 Usage Details
+## 🔧 Environment & Observability (Logfire)
 
-- **Frontend Interface:** [http://localhost:3000](http://localhost:3000)
-- **API Swagger Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **ReDoc Visualization:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+This project uses **Logfire** for deep observability and distributed tracing across the agentic loop.
 
-### Testing RAG Features
-Simply drag and drop PDFs, `.docx` files, or Python scripts into the chatbox in OpenWebUI. Alternatively, hit the custom ingestion endpoint directly via shell:
-```bash
-curl -X POST -F "file=@your_research_paper.pdf" http://localhost:8000/v1/upload
-```
+- **To enable Logfire**: Set `LOGFIRE_TOKEN` in your `.env`.
+- **To change the project name**: Update `LOGFIRE_PROJECT_NAME`.
+- **Legacy Formats**: The RAG pipeline automatically detects legacy binary formats (`.doc`, `.xls`) and logs a warning with a "How to fix" hint in Logfire while providing a clear error message to the user.
 
-### Extending Vision Capabilities (Images)
-If you wish for the UI to be capable of extracting contextual relevance from literal images via open source sight recognition, simply open your host terminal and download Llava natively:
-```bash
-ollama run llava
-```
-It will automatically map right back into your chat environment!
+---
+
+## 🧠 Changing LLM Models
+
+The chatbot defaults to **Gemma 2**. You can swap models easily:
+
+1. **Via UI**: In OpenWebUI, select the model from the dropdown. If a model isn't downloaded, the middleware will attempt to pull it automatically.
+2. **Via Docker Compose**: Update the `DEFAULT_MODELS` environment variable in `docker-compose.yml`.
+3. **Optimizing for Mac**: For 100% performance on Mac M-Series, run Ollama natively (`OLLAMA_HOST=0.0.0.0 ollama serve`) and update `OLLAMA_BASE_URL` in `.env` to `http://host.docker.internal:11434`.
+
+---
+
+## 🏗️ The RAG Pipeline (Docling Enhancements)
+
+The `RAGService` has been modernised with **Docling 2.x**:
+- **Structured Parsing**: Uses `DOC_CHUNKS` and `HybridChunker` (layout-aware) to ensure tables and semantic structures are preserved.
+- **Multi-Format Support**:
+    - **Native**: PDF (with OCR), DOCX, XLSX, PPTX, HTML, XML, CSV.
+    - **Source Code**: Python, C++, C, CUE, Go, Rust, Java, etc.
+    - **Images**: Native OCR via Docling IMAGE pipeline with Tesseract fallback.
+- **Bulk Ingestion**: Supports automated ingestion of entire directories via `rag.bulk_ingest("/path/to/docs")` with graceful error skipping.
+
+---
+
+## 📡 Usage Commands
+
+| Command | Action |
+|:---|:---|
+| `make up` | Start full docker stack |
+| `make build` | Rebuild middleware with latest dependencies |
+| `make run` | Run middleware locally for debugging |
+| `make test` | Run diagnostic suite (RAG Stress, OCR, Dispatch) |
+| `make clean` | Stop containers and clear all persistence volumes |
+
+---
+
+## 🧪 Testing
+We maintain a robust suite of tests in `middleware/tests/`:
+- `test_rag_dispatch.py`: Verifies optimal routing for all 15+ supported file formats.
+- `test_pdf_quality.py`: Validates high-fidelity extraction from complex PDFs.
+- `test_vision_ocr.py`: Ensures Tesseract fallback is functional for pure image files.

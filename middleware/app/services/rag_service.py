@@ -154,6 +154,15 @@ class RAGService:
 
     # ── Internal Helpers ──────────────────────────────────────────────────────
 
+    def _get_docling_loader(self, file_path: str, export_type: ExportType) -> DoclingLoader:
+        """Helper to create a DoclingLoader with consistent optimal settings."""
+        return DoclingLoader(
+            file_path=file_path,
+            converter=self.docling_converter,
+            export_type=export_type,
+            chunker=HybridChunker(tokenizer="BAAI/bge-small-en-v1.5"),
+        )
+
     def _load_or_create_store(self) -> Optional[FAISS]:
         """Lazy-loads the FAISS index from disk. No-ops if already loaded."""
         if self.vector_store is not None:
@@ -202,44 +211,28 @@ class RAGService:
             with logfire.span("load_documents", extension=ext):
                 if ext in DOCLING_EXTENSIONS:
                     # DOC_CHUNKS preserves heading/table/caption structure.
-                    # HybridChunker is layout-aware — won't split mid-table.
-                    loader = DoclingLoader(
-                        file_path=file_path,
-                        converter=self.docling_converter,
-                        export_type=ExportType.DOC_CHUNKS,
-                        chunker=HybridChunker(tokenizer="BAAI/bge-small-en-v1.5"),
-                    )
+                    loader = self._get_docling_loader(file_path, ExportType.DOC_CHUNKS)
                     documents = loader.load()
 
                 elif ext in CSV_EXTENSIONS:
-                    # Markdown export converts table rows to readable prose
-                    loader = DoclingLoader(
-                        file_path=file_path,
-                        converter=self.docling_converter,
-                        export_type=ExportType.MARKDOWN,
-                    )
+                    # Markdown export for tables
+                    loader = self._get_docling_loader(file_path, ExportType.MARKDOWN)
                     documents = loader.load()
 
                 elif ext in TEXT_EXTENSIONS:
-                    # TextLoader preserves raw syntax — correct for all code files
+                    # Source code / text preservations
                     loader = TextLoader(file_path, autodetect_encoding=True)
                     documents = loader.load()
 
                 elif ext in DOCLING_IMAGE_EXTENSIONS:
-                    # Docling IMAGE pipeline handles OCR natively
-                    # Falls back to Tesseract only if Docling image processing fails
+                    # Native Docling IMAGE pipeline with Tesseract fallback
                     try:
-                        loader = DoclingLoader(
-                            file_path=file_path,
-                            converter=self.docling_converter,
-                            export_type=ExportType.MARKDOWN,
-                        )
+                        loader = self._get_docling_loader(file_path, ExportType.MARKDOWN)
                         documents = loader.load()
                         if not documents or not documents[0].page_content.strip():
-                            raise ValueError("Empty OCR result from Docling")
+                            raise ValueError("Empty OCR result")
                     except Exception:
-                        # Tesseract fallback for edge cases
-                        logfire.warn("Docling image OCR failed, falling back to Tesseract", filename=filename)
+                        logfire.warn("Docling OCR failed, using Tesseract", filename=filename)
                         extracted_text = pytesseract.image_to_string(Image.open(file_path))
                         documents = [Document(page_content=extracted_text, metadata={"source": filename})]
 
