@@ -13,6 +13,48 @@ It features an **Optimal RAG Pipeline** powered by **Docling 2.x**, enabling hig
 
 ---
 
+## 🧩 Architectural Diagram
+
+The system employs a multi-agent **Evaluator-Optimizer** loop combined with a modernized **Docling** RAG pipeline, all unified by **Logfire** distributed tracing.
+
+```mermaid
+graph TD
+    User([User]) <--> UI[OpenWebUI Frontend]
+    UI <-->|Stream API| API[FastAPI Middleware]
+    
+    subgraph Observability
+        Logfire[(Logfire Tracing)]
+    end
+    
+    subgraph "FastAPI Middleware (Docker)"
+        API <--> LG[LangGraph Agent Engine]
+        
+        LG --> CoT[Reasoning Agent]
+        CoT --> Tools[Tool Executor]
+        Tools --> Verifier{Verifier Node}
+        
+        Verifier -->|Self-Correct| CoT
+        Verifier -->|Success| CoT
+        
+        Logfire -.- API
+        Logfire -.- LG
+        Logfire -.- RAG
+    end
+    
+    subgraph "Optimal RAG Pipeline"
+        RAG[RAG Service]
+        RAG --> Docling[Docling 2.x Engine]
+        Docling --> HC[Hybrid Chunker]
+        HC --> FAISS[(FAISS Vector DB)]
+    end
+    
+    LG <--> RAG
+    LG <--> Ollama[Ollama Server]
+    Ollama <--> Gemma[(Gemma 2 LLM)]
+    
+    User -- Uploads --> RAG
+```
+
 ## 🚀 Quick Start (Clone & Run)
 
 ### 1. Clone the Repository
