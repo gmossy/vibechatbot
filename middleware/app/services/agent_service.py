@@ -4,12 +4,15 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_ollama.chat_models import ChatOllama
+from langchain_core.runnables import RunnableConfig
 
 from langgraph.checkpoint.memory import MemorySaver
 
 from app.services.rag_service import RAGService
 from app.services.tools import agent_tools
 from app.core.config import settings
+import logfire
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 class AgentState(TypedDict):
     """The graph state tracking the conversation history natively."""
@@ -22,18 +25,50 @@ class LangGraphAgent:
         
         workflow.add_node("reasoning_agent", self._call_model)
         workflow.add_node("tools", tool_node)
+        workflow.add_node("verifier", self._verify_results)
         
         workflow.add_edge(START, "reasoning_agent")
         workflow.add_conditional_edges("reasoning_agent", tools_condition)
-        workflow.add_edge("tools", "reasoning_agent")
+        workflow.add_edge("tools", "verifier")
+        workflow.add_edge("verifier", "reasoning_agent")
         
         # Configure scoped memory per physical LLM conversation thread
         self.checkpointer = MemorySaver()
         self.app = workflow.compile(checkpointer=self.checkpointer)
         
-    async def _call_model(self, state: AgentState, config: dict = None):
-        if config is None:
-            config = {}
+    async def _verify_results(self, state: AgentState):
+        """
+        Evaluator Node: Inspects the output of tool executions.
+        If a critical error is detected (especially in terminal commands), 
+        it can append a helpful hint for the reasoning agent to self-correct.
+        """
+        with logfire.span("verifier_node"):
+            messages = state["messages"]
+            last_msg = messages[-1]
+            
+            # We only care about verifying tool outputs (ToolMessages)
+            if hasattr(last_msg, "tool_call_id"):
+                content = last_msg.content.lower()
+                error_keywords = ["error", "failed", "not found", "denied", "forbidden", "exception", "invalid"]
+                if any(kw in content for kw in error_keywords):
+                    logfire.info("Verifier detected anomaly: {content}", content=content)
+                    # Append a small 'Verification System' nudge if things went wrong
+                    nudge = (
+                        "\n[VERIFIER]: I detected an error or failure in the previous tool output. "
+                        "Analyze the error, correct your parameters or dependencies, and try again if necessary."
+                    )
+                    last_msg.content += nudge
+                    
+            return {"messages": messages}
+
+    async def _call_model(self, state: AgentState, config: RunnableConfig = None):
+        """
+        Reasoning Node: The primary Brain of the agent.
+        Uses Chain of Thought (CoT) to decide which tools to call.
+        """
+        with logfire.span("reasoning_node"):
+            if config is None:
+                config = {}
         
         # Thread constraints for isolation
         thread_id = config.get("configurable", {}).get("thread_id", "default_thread")
@@ -74,8 +109,37 @@ class LangGraphAgent:
             
         sys_msg = SystemMessage(content=system_prompt)
         
-        response = await llm_with_tools.ainvoke([sys_msg] + list(messages))
+        # Sliding Window Optimization: Keep only the most recent 20 messages to stay within the LLM context window.
+        # This is the 'simplest' and most reliable approach for an open-source project.
+        max_history = 20
+        if len(messages) > max_history:
+            logfire.info("Pruning history: trimming from {count} to {max}", count=len(messages), max=max_history)
+            pruned_messages = list(messages)[-max_history:]
+        else:
+            pruned_messages = list(messages)
+
+        logfire.info("Agent invoking LLM with {msg_count} messages", msg_count=len(pruned_messages))
         
+        # Declarative retry logic for transient LLM/Ollama network issues
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=4, max=10),
+            reraise=True
+        )
+        async def _invoke_with_retry():
+            return await llm_with_tools.ainvoke([sys_msg] + pruned_messages)
+
+        try:
+            response = await _invoke_with_retry()
+        except Exception as e:
+            logfire.error("LLM Invocation critically failed after retries: {e}", e=e)
+            raise e
+
+        if response.tool_calls:
+            logfire.info("Agent decided to call tools: {tools}", tools=[tc["name"] for tc in response.tool_calls])
+        else:
+            logfire.info("Agent providing final conversational response")
+            
         return {"messages": [response]}
 
 _AGENT_GRAPH_INSTANCE = None

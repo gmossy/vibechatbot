@@ -9,13 +9,13 @@
 ## 🌟 Executive Summary
 Mossy Chatbot is a truly state-of-the-art Agentic Chat application built to operate 100% locally and securely. It bridges the breathtaking aesthetics of the ChatGPT-clone **OpenWebUI** with a highly sophisticated **LangGraph** Python architecture. 
 
-It handles advanced mathematical calculations, dynamic multimodal generation (PDF/Word), and real-time knowledge synthesis through an integrated **FAISS Vector RAG Engine**—all powered locally via **Google's Gemma** Large Language Model.
+It handles advanced mathematical calculations, dynamic multimodal generation (PDF/Word), and real-time knowledge synthesis through an integrated **FAISS Vector RAG Engine**, stabilized by an **Evaluator-Optimizer loop** for reliable tool execution—all powered locally via **Google's Gemma** Large Language Model.
 
 ---
 
 ## 🧩 Architectural Diagram
 
-The system employs a cyclical graph-based multi-agent architecture utilizing Chain of Thought (CoT) loops prior to yielding stream responses to the frontend.
+The system employs a cyclical graph-based multi-agent architecture utilizing an **Evaluator-Optimizer** loop to verify tool outputs before final delivery.
 
 ```mermaid
 graph TD
@@ -24,12 +24,16 @@ graph TD
     
     subgraph FastAPI Middleware Environment
         API <--> LG[LangGraph Agent Engine]
-        LG --> CoT[Chain of Thought Logic]
-        LG <--> RAG[FAISS Vector RAG DB]
-        LG <--> Tools[Agentic Tool Calling]
+        LG --> CoT[Reasoning Node]
+        CoT --> Tools[Agentic Tool Calling]
+        Tools --> Verifier{Verifier Node}
+        Verifier -->|Success| CoT
+        Verifier -->|Fail/Error| CoT
+        
         Tools --> PDF[PDF Creator]
         Tools --> Word[Docx Creator]
         Tools --> Calc[Math Evaluator]
+        Tools --> Terminal[Verify Terminal Execution]
     end
     
     LG <-->|Langchain Bindings| Ollama[Ollama Engine]
@@ -80,6 +84,12 @@ mossychatbot/
 ## 🛠️ Installation & Setup Prerequisites
 
 To utilize the full capabilities of the Mossy Chatbot, ensure you are running on an Apple Silicon Mac (M-Series) with a minimum of 16GB Unified RAM (48GB recommended for larger vision models), and have Docker Desktop installed.
+
+### System Prerequisites (OCR & Parsing)
+For advanced document parsing and image recognition, install the following binaries via Homebrew:
+```bash
+brew install tesseract
+```
 
 ### 1. Clone the Repository
 Open a terminal and clone the repository directly from GitHub:

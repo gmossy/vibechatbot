@@ -6,6 +6,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers import chat, documents
 from app.core.config import settings
+import logfire
+
+# Initialize Logfire
+logfire.configure(
+    project_name=settings.LOGFIRE_PROJECT_NAME,
+    token=settings.LOGFIRE_TOKEN
+)
+logfire.instrument_pydantic()
 
 # Explicitly configure Swagger UI (docs) and ReDoc
 app = FastAPI(
@@ -24,6 +32,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Instrument FastAPI with Logfire for deep observability
+logfire.instrument_fastapi(app)
+
 # Include the router mimicking OpenAI format that OpenWebUI expects
 app.include_router(chat.router, prefix=settings.API_V1_STR, tags=["chat"])
 # Include the RAG and database ingestion endpoints
@@ -35,4 +46,4 @@ def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8001, reload=True)

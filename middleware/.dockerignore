@@ -1,0 +1,21 @@
+# Dependencies
+.venv/
+__pycache__/
+*.pyc
+
+# Data & Persistence
+data/
+temp_uploads/
+generated_files/
+.logfire/
+
+# Local Config
+.env
+.env.example
+
+# Git
+.git
+.gitignore
+
+# OS
+.DS_Store

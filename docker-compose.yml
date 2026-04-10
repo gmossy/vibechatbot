@@ -1,4 +1,4 @@
-version: '3.8'
+# Docker Compose v2+ — 'version' field is deprecated and removed
 
 services:
   openwebui:
@@ -7,7 +7,7 @@ services:
     ports:
       - "3000:8080"
     environment:
-      - OPENAI_API_BASE_URL=http://middleware:8000/v1
+      - OPENAI_API_BASE_URL=http://middleware:8001/v1
       - OPENAI_API_KEY=mossy-secret-key
       - HF_TOKEN=${HF_TOKEN}
       - DEFAULT_MODELS=gemma4
@@ -29,13 +29,16 @@ services:
       dockerfile: Dockerfile
     container_name: mossy-middleware
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
       - ./middleware/app:/app/app
     environment:
       # Use http://host.docker.internal:11434 if running Ollama natively on Mac
       - OLLAMA_BASE_URL=http://ollama:11434
       - HF_TOKEN=${HF_TOKEN}
+      - LOGFIRE_TOKEN=${LOGFIRE_TOKEN}
+      - LOGFIRE_PROJECT_NAME=${LOGFIRE_PROJECT_NAME:-vibechatbot}
+      - DOCLING_ALLOW_EXTERNAL_PLUGINS=true
     depends_on:
       - ollama
     restart: always

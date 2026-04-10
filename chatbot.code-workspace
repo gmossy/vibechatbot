@@ -4,5 +4,11 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"python.defaultInterpreterPath": "./middleware/.venv/bin/python3.13",
+		"python.terminal.activateEnvInCurrentTerminal": true,
+		"python.analysis.extraPaths": [
+			"./middleware"
+		]
+	}
 }

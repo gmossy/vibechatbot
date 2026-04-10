@@ -1,22 +1,58 @@
+# ════════════════════════════════════════════════════════
+#  Mossy Chatbot Middleware — Python Dependencies
+#  Last audited: 2026-04-10
+# ════════════════════════════════════════════════════════
+
+# ── Web Framework ─────────────────────────────────────────
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9          # Required for file upload endpoints
+
+# ── Data Validation & Configuration ──────────────────────
 pydantic>=2.9.0
-pydantic-settings>=2.5.0
-httpx>=0.27.0
+pydantic-settings>=2.5.0         # .env file loading via BaseSettings
 python-dotenv>=1.0.1
-python-multipart>=0.0.9
-faiss-cpu>=1.8.0
+
+# ── HTTP Client ───────────────────────────────────────────
+httpx>=0.27.0
+
+# ── Authentication ────────────────────────────────────────
+PyJWT>=2.9.0                     # Keycloak token decoding
+
+# ── LangChain / LangGraph ─────────────────────────────────
 langchain>=0.2.0
 langchain-community>=0.2.0
+langchain-core>=0.2.0
 langchain-huggingface>=0.0.1
-langchain-docling
-pypdf>=4.0.0
-docx2txt>=0.8
-sentence-transformers>=3.0.0
-langgraph>=0.2.0
 langchain-ollama>=0.1.0
 langchain-text-splitters>=0.2.0
-reportlab>=4.2.0
-python-docx>=1.1.0
+langgraph>=0.2.0
+
+# ── Document Ingestion (Docling — Optimal RAG Pipeline) ───
+langchain-docling                 # DoclingLoader + ExportType + HybridChunker
+docling>=2.86.0                  # Pinned to audited version
+
+# ── Vector Store & Embeddings ─────────────────────────────
+faiss-cpu>=1.8.0
+sentence-transformers>=3.0.0
+
+# ── Image OCR (Tesseract wrapper) ─────────────────────────
 pytesseract>=0.3.13
-duckduckgo-search<4.0.0
+Pillow>=10.4.0                   # PIL Image for OCR pre-processing
+
+# ── Document Generation Tools ─────────────────────────────
+reportlab>=4.2.0                 # PDF generation (create_pdf tool)
+python-docx>=1.1.0               # DOCX generation (create_word_doc tool)
+
+# ── Web Search ────────────────────────────────────────────
+duckduckgo-search>=6.0.0
+
+# ── Observability ─────────────────────────────────────────
+logfire[fastapi]>=0.50.0         # Distributed tracing for FastAPI + Pydantic
+
+# ── Resilience ────────────────────────────────────────────
+tenacity>=9.0.0                  # Exponential backoff for LLM + web search calls
+
+# ── Removed (superseded by Docling) ───────────────────────
+# pypdf    — PDF text extraction replaced by Docling's superior pipeline
+# docx2txt — DOCX reading replaced by Docling's OOXML parser
