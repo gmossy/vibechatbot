@@ -10,14 +10,26 @@ router = APIRouter()
 UPLOAD_DIR = "./temp_uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@router.post("/upload")
+@router.post("/upload", summary="Ingest Document into RAG", response_description="Ingestion Status Report")
 async def upload_document(
-    file: UploadFile = File(...),
-    project_id: str = Form("default_project"),
+    file: UploadFile = File(..., description="The document file (PDF, DOCX, XLSX, TXT, or Source Code)."),
+    project_id: str = Form("default_project", description="Logical project grouping for document isolation."),
     user_id: str = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Receives File uploads (PDF, Word, Code) -> Saves -> Chunks -> Embeds in FAISS -> Cleans up
+    ### Overview
+    Uploads a document to the **Docling-powered RAG Pipeline**.
+    
+    ### Process:
+    1.  **Ingestion**: Detects format (Office, PDF, Code, XML, Image).
+    2.  **Structuring**: Extracts layout and tables using Docling 2.x.
+    3.  **Vectorization**: Embeds chunks using `all-MiniLM-L6-v2`.
+    4.  **Indexing**: Adds to a FAISS vector store scoped by `user_id` and `project_id`.
+    
+    ### Responses:
+    - **200 OK**: Success with the count of semantic chunks created.
+    - **400 Bad Request**: Unsupported format or parsing error.
+    - **500 Internal Server Error**: Infrastructure or ML model failure.
     """
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")

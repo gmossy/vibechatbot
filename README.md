@@ -108,6 +108,19 @@ The chatbot defaults to **Gemma 2**. You can swap models easily:
 2. **Via Docker Compose**: Update the `DEFAULT_MODELS` environment variable in `docker-compose.yml`.
 3. **Optimizing for Mac**: For 100% performance on Mac M-Series, run Ollama natively (`OLLAMA_HOST=0.0.0.0 ollama serve`) and update `OLLAMA_BASE_URL` in `.env` to `http://host.docker.internal:11434`.
 
+### 🔐 OpenWebUI Authentication & Passwords
+
+**Initial Setup (First Launch):**
+1.  Navigate to [http://localhost:3000](http://localhost:3000).
+2.  Click **Sign Up**.
+3.  **The first user account created automatically becomes the Administrator**.
+4.  No default passwords are pre-set; you define your own during the initial registration.
+
+**OAuth Integration (Enterprise Mode):**
+If you have configured the **Keycloak** stack (as seen in `docker-compose.yml`), you can log in via the "Keycloak" button. 
+- **Default OAuth Secret**: `mossy_secret_key` (Internal dev only).
+- **Client ID**: `openwebui`.
+
 ---
 
 ## 🏗️ The RAG Pipeline (Docling Enhancements)

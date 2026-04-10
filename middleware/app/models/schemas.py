@@ -2,15 +2,37 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Any, Union
 
 class Message(BaseModel):
-    role: str
-    content: str
+    role: str = Field(..., description="The role of the message sender, usually 'user' or 'assistant'.")
+    content: str = Field(..., description="The textual content of the message.")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "role": "user",
+                "content": "Hello! Can you help me analyze the documents I just uploaded?"
+            }
+        }
+    }
     
 class ChatCompletionRequest(BaseModel):
-    model: str
+    model: str = Field(default="gemma2", description="The LLM model to use (e.g., gemma2, llama3).")
     messages: List[Message]
-    stream: Optional[bool] = False
-    temperature: Optional[float] = 0.7
-    max_tokens: Optional[int] = None
+    stream: Optional[bool] = Field(default=False, description="Whether to stream the response as server-sent events.")
+    temperature: Optional[float] = Field(default=0.7, description="Sampling temperature (0.0 to 1.0).")
+    max_tokens: Optional[int] = Field(default=None, description="Maximum number of tokens to generate.")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "model": "gemma2",
+                "messages": [
+                    {"role": "user", "content": "What is the primary objective of the mossychatbot repository?"}
+                ],
+                "stream": False,
+                "temperature": 0.5
+            }
+        }
+    }
     
 class ChoiceDelta(BaseModel):
     content: Optional[str] = None
