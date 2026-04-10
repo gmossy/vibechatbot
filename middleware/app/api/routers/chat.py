@@ -1,14 +1,18 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from typing import Dict, Any
 from app.models.schemas import ChatCompletionRequest
 from app.services.llm_service import LLMService
+from app.core.security import get_current_user
 import time
 
 router = APIRouter()
 
 @router.post("/chat/completions")
-async def chat_completions(request: ChatCompletionRequest):
-    return await LLMService.generate_response(request)
+async def chat_completions(
+    request: ChatCompletionRequest,
+    user_id: str = Depends(get_current_user)
+):
+    return await LLMService.generate_response(request, user_id=user_id)
 
 @router.get("/models")
 async def get_models() -> Dict[str, Any]:

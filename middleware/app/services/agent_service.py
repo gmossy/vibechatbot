@@ -5,7 +5,9 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_ollama.chat_models import ChatOllama
 
-from app.services.rag_service import rag_service
+from langgraph.checkpoint.memory import MemorySaver
+
+from app.services.rag_service import RAGService
 from app.services.tools import agent_tools
 from app.core.config import settings
 
@@ -16,31 +18,27 @@ class AgentState(TypedDict):
 class LangGraphAgent:
     def __init__(self):
         workflow = StateGraph(AgentState)
-        
-        # Tools node utilizing our standard decorator tools
         tool_node = ToolNode(agent_tools)
         
-        # We add the LLM node and the tools node
         workflow.add_node("reasoning_agent", self._call_model)
         workflow.add_node("tools", tool_node)
         
-        # Entry point
         workflow.add_edge(START, "reasoning_agent")
-        
-        # Let langgraph automatically decide if tools were requested
-        workflow.add_conditional_edges(
-            "reasoning_agent",
-            tools_condition,
-        )
-        
-        # If it went to tools, execute them explicitly and then route back to the LLM to give the answer
+        workflow.add_conditional_edges("reasoning_agent", tools_condition)
         workflow.add_edge("tools", "reasoning_agent")
         
-        self.app = workflow.compile()
+        # Configure scoped memory per physical LLM conversation thread
+        self.checkpointer = MemorySaver()
+        self.app = workflow.compile(checkpointer=self.checkpointer)
         
     async def _call_model(self, state: AgentState, config: dict = None):
         if config is None:
             config = {}
+        
+        # Thread constraints for isolation
+        thread_id = config.get("configurable", {}).get("thread_id", "default_thread")
+        user_id = config.get("configurable", {}).get("user_id", "default_user")
+        project_id = config.get("configurable", {}).get("project_id", "default_project")
         messages = state["messages"]
         last_message = messages[-1].content if messages and hasattr(messages[-1], "content") else ""
         
@@ -57,6 +55,8 @@ class LangGraphAgent:
         # This tells Ollama what tools exist and passes JSON schemas.
         llm_with_tools = llm.bind_tools(agent_tools)
         
+        # Dynamically load the FAISS store specific to this logical user and project
+        rag_service = RAGService(user_id=user_id, project_id=project_id)
         context = rag_service.retrieve_context(last_message) if last_message else ""
         
         system_prompt = (
@@ -78,4 +78,10 @@ class LangGraphAgent:
         
         return {"messages": [response]}
 
-agent_graph = LangGraphAgent()
+_AGENT_GRAPH_INSTANCE = None
+
+def get_agent_graph():
+    global _AGENT_GRAPH_INSTANCE
+    if _AGENT_GRAPH_INSTANCE is None:
+        _AGENT_GRAPH_INSTANCE = LangGraphAgent()
+    return _AGENT_GRAPH_INSTANCE

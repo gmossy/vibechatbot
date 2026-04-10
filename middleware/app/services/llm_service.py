@@ -10,11 +10,11 @@ from app.models.schemas import (
     ChatCompletionResponseChoice,
     MessageResponse
 )
-from app.services.agent_service import agent_graph
+from app.services.agent_service import get_agent_graph
 
 class LLMService:
     @staticmethod
-    async def generate_response(request: ChatCompletionRequest):
+    async def generate_response(request: ChatCompletionRequest, user_id: str = "default_user"):
         
         # Translate OpenWebUI / OpenAI dict messages to Langchain Core messages
         lc_messages = []
@@ -30,12 +30,16 @@ class LLMService:
         config = {
             "configurable": {
                 "model": request.model,
-                "temperature": request.temperature
+                "temperature": request.temperature,
+                "user_id": user_id,
+                "thread_id": f"{user_id}_default",
+                "project_id": "default_project"
             }
         }
 
         if request.stream:
             async def generate():
+                agent_graph = get_agent_graph()
                 # LangGraph exposes astream. This yields output events natively.
                 # Mode="messages" gives us chunk by chunk token generation.
                 async for msg, metadata in agent_graph.app.astream(
@@ -74,6 +78,7 @@ class LLMService:
             return StreamingResponse(generate(), media_type="text/event-stream")
             
         else:
+            agent_graph = get_agent_graph()
             # Synchronous invocation
             final_state = await agent_graph.app.ainvoke({"messages": lc_messages}, config=config)
             

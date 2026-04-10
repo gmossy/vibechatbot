@@ -1,8 +1,9 @@
 import os
 import shutil
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from typing import Dict, Any
-from app.services.rag_service import rag_service
+from app.services.rag_service import RAGService
+from app.core.security import get_current_user
 
 router = APIRouter()
 
@@ -10,7 +11,11 @@ UPLOAD_DIR = "./temp_uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/upload")
-async def upload_document(file: UploadFile = File(...)) -> Dict[str, Any]:
+async def upload_document(
+    file: UploadFile = File(...),
+    project_id: str = Form("default_project"),
+    user_id: str = Depends(get_current_user)
+) -> Dict[str, Any]:
     """
     Receives File uploads (PDF, Word, Code) -> Saves -> Chunks -> Embeds in FAISS -> Cleans up
     """
@@ -25,6 +30,8 @@ async def upload_document(file: UploadFile = File(...)) -> Dict[str, Any]:
             shutil.copyfileobj(file.file, buffer)
             
         # Push through the ML ingestion pipeline
+        # Initialize logic boundaries natively
+        rag_service = RAGService(user_id=user_id, project_id=project_id)
         chunks_created = rag_service.ingest_file(file_path, file.filename)
         
         # Once vectorized, original isn't needed by FAISS so we do pristine cleanup
