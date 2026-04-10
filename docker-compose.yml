@@ -38,36 +38,9 @@ services:
       - HF_TOKEN=${HF_TOKEN}
     depends_on:
       - ollama
-      - keycloak
     restart: always
 
-  postgres:
-    image: postgres:15-alpine
-    container_name: mossy-postgres
-    environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: always
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:24.0.2
-    container_name: mossy-keycloak
-    command: start-dev
-    environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: password
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-    ports:
-      - "8081:8080"
-    depends_on:
-      - postgres
-    restart: always
 
   ollama:
     image: ollama/ollama:latest
@@ -93,4 +66,3 @@ services:
 volumes:
   openwebui_data:
   ollama_data:
-  postgres_data:
