@@ -11,7 +11,7 @@ from langchain_core.messages import HumanMessage, ToolMessage, AIMessage
 async def test_verifier_node():
     print("\n--- 🧪 TESTING EVALUATOR/VERIFIER NODE ---")
     
-    agent_graph = get_agent_graph()
+    agent_graph = await get_agent_graph()
     
     # 1. Simulate a state where a tool has just failed
     messages = [

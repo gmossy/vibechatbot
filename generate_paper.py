@@ -2,7 +2,7 @@ from reportlab.pdfgen import canvas
 
 def create_dummy_pdf():
     c = canvas.Canvas("your_research_paper.pdf")
-    c.drawString(100, 750, "Mossy Chatbot Architecture Research Paper")
+    c.drawString(100, 750, "Agent Chatbot Architecture — sample paper")
     c.drawString(100, 730, "Abstract:")
     c.drawString(100, 710, "This document outlines the deployment of a Multi-Agent AI system")
     c.drawString(100, 690, "using LangGraph, Gemma 4, and OpenWebUI natively on an M5 Pro Max.")

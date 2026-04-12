@@ -1,6 +1,6 @@
-# Mossy Chatbot Architecture V1.1
+# Agent Chatbot Architecture V1.1
 
-This document describes the current production architecture of the Mossy Chatbot as of April 2026.
+This document describes the current production architecture of this chatbot stack as of April 2026.
 
 ## 🔗 Component Overview
 

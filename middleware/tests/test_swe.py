@@ -4,7 +4,7 @@ from app.services.agent_service import agent_graph
 
 async def test_swe():
     print("--- 🛠 RUNNING SWE AGENT TEST 🛠 ---")
-    query = "Write a python script called sweep.py that prints 'Hello from SWE Mossy' and save it to the current directory. Execute it to verify."
+    query = "Write a python script called sweep.py that prints 'Hello from SWE test' and save it to the current directory. Execute it to verify."
     
     print(f"USER: {query}")
     inputs = {"messages": [HumanMessage(content=query)]}

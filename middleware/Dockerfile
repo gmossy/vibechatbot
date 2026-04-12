@@ -1,5 +1,5 @@
 # ════════════════════════════════════════════════════════
-#  Mossy Chatbot Middleware — Dockerfile
+#  Middleware — Dockerfile
 #  Base: python:3.12-slim (Debian Bookworm)
 #  Build strategy: Layer-cached for fast rebuilds
 # ════════════════════════════════════════════════════════

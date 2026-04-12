@@ -4,7 +4,7 @@ from app.services.rag_service import rag_service
 from app.services.tools import calculator, agent_tools, web_search
 
 async def run_proof():
-    print("\n--- 🤖 MOSSY CHATBOT PROOF OF CONCEPT ---")
+    print("\n--- 🤖 AGENT CHATBOT PROOF OF CONCEPT ---")
     
     # 1. Proving Tool Instantiation
     print("\n[✔] ALL AGENT TOOLS LOADED SUCCESSFULLY:")
@@ -28,16 +28,16 @@ async def run_proof():
     # Generate a mock text file
     test_file = "test_document.txt"
     with open(test_file, "w") as f:
-        f.write("The Mossy Chatbot was exclusively developed by AI Engineer Glenn Mossy in April 2026. It features LangGraph and openWebUI.")
+        f.write("This open-source agent chatbot stack uses LangGraph and OpenWebUI. Example attribution line for RAG retrieval tests.")
         
     # Ingest directly into RAG!
     rag_service.ingest_file(test_file)
     print(f"   SUCCESS! File '{test_file}' intercepted, parsed, and embedded into FAISS Database.")
     
     # Verify retrieval
-    context = rag_service.retrieve_context("Who developed the Mossy Chatbot?")
+    context = rag_service.retrieve_context("What UI does this stack use?")
     print(f"   FAISS Retrieval Engine Yielded:\n   >> {context}\n")
-    assert "Glenn Mossy" in context, "FAISS failed to properly recall the embedded memory."
+    assert "OpenWebUI" in context, "FAISS failed to properly recall the embedded memory."
     
     # Clean up
     os.remove(test_file)

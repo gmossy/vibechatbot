@@ -1,12 +1,18 @@
 import os
 import subprocess
+import json
+import mimetypes
+from datetime import datetime
 from langchain_core.tools import tool
 from duckduckgo_search import DDGS
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 import docx
+from pptx import Presentation
 import logfire
 from tenacity import retry, stop_after_attempt, wait_exponential
+from app.services.rag_service import RAGService
+from app.core.config import settings
 
 @tool
 def execute_terminal(command: str) -> str:
@@ -113,6 +119,10 @@ def create_pdf(text: str, filename: str) -> str:
                     c.showPage()
                     y = 750
             c.save()
+            base = (settings.PUBLIC_BASE_URL or "").rstrip("/")
+            if base:
+                url = f"{base}{settings.API_V1_STR}/generated_files/{filename}"
+                return f"Successfully created PDF: [{filename}]({url})"
             return f"Successfully created PDF at {filepath}"
         except Exception as e:
             logfire.error("PDF creation failed: {e}", e=e)
@@ -133,10 +143,189 @@ def create_word(text: str, filename: str) -> str:
             doc = docx.Document()
             doc.add_paragraph(text)
             doc.save(filepath)
+            base = (settings.PUBLIC_BASE_URL or "").rstrip("/")
+            if base:
+                url = f"{base}{settings.API_V1_STR}/generated_files/{filename}"
+                return f"Successfully created Word Document: [{filename}]({url})"
             return f"Successfully created Word Document at {filepath}"
         except Exception as e:
             logfire.error("Word creation failed: {e}", e=e)
             return f"Error creating Word Document: {str(e)}"
 
+@tool
+def create_pptx(text: str, filename: str) -> str:
+    """
+    Generates a Microsoft PowerPoint (.pptx) presentation.
+
+    Format:
+    - Slides are separated by a blank line.
+    - For each slide, the first line is the title.
+    - Remaining lines become bullet points.
+    """
+    with logfire.span("tool_create_pptx", filename=filename):
+        if not filename.endswith(".pptx"):
+            filename += ".pptx"
+
+        filepath = os.path.join(GENERATED_DIR, filename)
+        try:
+            prs = Presentation()
+            slide_layout = prs.slide_layouts[1]
+
+            stripped = (text or "").strip()
+            slides_data = None
+            if stripped.startswith("[") or stripped.startswith("{"):
+                try:
+                    parsed = json.loads(stripped)
+                    if isinstance(parsed, dict) and isinstance(parsed.get("slides"), list):
+                        slides_data = parsed.get("slides")
+                    elif isinstance(parsed, list):
+                        slides_data = parsed
+                except Exception:
+                    slides_data = None
+
+            if slides_data is not None:
+                for item in slides_data:
+                    if not isinstance(item, dict):
+                        continue
+                    title = str(item.get("title", "")).strip() or "Slide"
+                    bullets = item.get("bullets", [])
+                    if bullets is None:
+                        bullets = []
+                    if isinstance(bullets, str):
+                        bullets = [bullets]
+                    if not isinstance(bullets, list):
+                        bullets = []
+
+                    slide = prs.slides.add_slide(slide_layout)
+                    slide.shapes.title.text = title
+                    body = slide.shapes.placeholders[1].text_frame
+                    body.clear()
+
+                    bullet_items = [str(b).strip() for b in bullets if str(b).strip()]
+                    if bullet_items:
+                        for i, bullet in enumerate(bullet_items):
+                            p = body.paragraphs[0] if i == 0 else body.add_paragraph()
+                            p.text = bullet
+                    else:
+                        body.text = ""
+            else:
+                blocks = [b.strip() for b in (text or "").split("\n\n") if b.strip()]
+                if not blocks:
+                    blocks = ["Presentation"]
+
+                for block in blocks:
+                    lines = [ln.strip() for ln in block.split("\n") if ln.strip()]
+                    if not lines:
+                        continue
+
+                    title = lines[0]
+                    bullets = lines[1:]
+
+                    slide = prs.slides.add_slide(slide_layout)
+                    slide.shapes.title.text = title
+
+                    body = slide.shapes.placeholders[1].text_frame
+                    body.clear()
+                    if bullets:
+                        for i, bullet in enumerate(bullets):
+                            p = body.paragraphs[0] if i == 0 else body.add_paragraph()
+                            p.text = bullet
+                    else:
+                        body.text = ""
+
+            prs.save(filepath)
+            base = (settings.PUBLIC_BASE_URL or "").rstrip("/")
+            if base:
+                url = f"{base}{settings.API_V1_STR}/generated_files/{filename}"
+                return f"Successfully created PowerPoint: [{filename}]({url})"
+            return f"Successfully created PowerPoint at {filepath}"
+        except Exception as e:
+            logfire.error("PPTX creation failed: {e}", e=e)
+            return f"Error creating PowerPoint: {str(e)}"
+
+@tool
+def list_generated_files() -> str:
+    """Lists files in the generated_files directory with metadata and download links."""
+    with logfire.span("tool_list_generated_files"):
+        try:
+            if not os.path.isdir(GENERATED_DIR):
+                return "No generated files directory found."
+
+            names = []
+            for name in sorted(os.listdir(GENERATED_DIR)):
+                if name.startswith("."):
+                    continue
+                full_path = os.path.join(GENERATED_DIR, name)
+                if os.path.isfile(full_path):
+                    names.append(name)
+
+            if not names:
+                return "No generated files found."
+
+            base = (settings.PUBLIC_BASE_URL or "").rstrip("/")
+            lines = ["Generated files:"]
+            for name in names:
+                full_path = os.path.join(GENERATED_DIR, name)
+                st = os.stat(full_path)
+                mime, _ = mimetypes.guess_type(full_path)
+                modified = datetime.fromtimestamp(st.st_mtime).isoformat(timespec="seconds")
+                size = st.st_size
+
+                if base:
+                    url = f"{base}{settings.API_V1_STR}/generated_files/{name}"
+                    lines.append(
+                        f"- [{name}]({url}) ({mime or 'application/octet-stream'}, {size} bytes, {modified})"
+                    )
+                else:
+                    lines.append(
+                        f"- {name} ({mime or 'application/octet-stream'}, {size} bytes, {modified})"
+                    )
+
+            return "\n".join(lines)
+        except Exception as e:
+            logfire.error("List generated files failed: {e}", e=e)
+            return f"Error listing generated files: {str(e)}"
+
+@tool
+def discover_knowledge_bases(user_id: str = "default_user") -> str:
+    """
+    Lists all available knowledge bases (projects) and their descriptions.
+    Use this to find out which local database might contain the answer to a query.
+    """
+    projects = RAGService.list_available_projects(user_id)
+    if not projects:
+        return "No local knowledge bases found. You may need to upload documents first."
+    
+    output = "Available Knowledge Bases:\n"
+    for p_id, data in projects.items():
+        files = ", ".join(data.get("files", []))
+        desc = data.get("description", "No description")
+        output += f"- {p_id}: {desc} (Files: {files})\n"
+    return output
+
+@tool
+def rag_search(query: str, project_id: str = "default_project", user_id: str = "default_user") -> str:
+    """
+    Searches a specific local knowledge base for relevant context.
+    REQUIRED: You must get the 'project_id' from discover_knowledge_bases first.
+    """
+    rag = RAGService(user_id=user_id, project_id=project_id)
+    context = rag.retrieve_context(query)
+    if not context:
+        return f"No relevant information found in project '{project_id}'."
+    return context
+
 # Master list of all tools
-agent_tools = [calculator, create_pdf, create_word, web_search, execute_terminal, read_local_file, write_local_file]
+agent_tools = [
+    calculator, 
+    create_pdf, 
+    create_word, 
+    create_pptx,
+    list_generated_files,
+    web_search, 
+    execute_terminal, 
+    read_local_file, 
+    write_local_file,
+    discover_knowledge_bases,
+    rag_search
+]

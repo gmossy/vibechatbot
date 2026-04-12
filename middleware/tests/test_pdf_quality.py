@@ -13,12 +13,13 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("DOCLING_ALLOW_EXTERNAL_PLUGINS", "true")
 
-REAL_PDF = "/Users/glennmossy/chatbot/your_research_paper.pdf"
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+REAL_PDF = os.path.join(_REPO_ROOT, "your_research_paper.pdf")
 
 # ── Create real source code test fixtures ────────────────────────────────────
 C_CODE = """\
 #include <stdio.h>
-// Mossy function: compute factorial
+// Example: compute factorial
 int factorial(int n) {
     if (n <= 1) return 1;
     return n * factorial(n - 1);
@@ -30,7 +31,7 @@ int main() {
 """
 
 PYTHON_CODE = """\
-# Mossy RAG pipeline utility
+# Example RAG pipeline utility
 def compute_embedding_similarity(vec_a, vec_b):
     \"\"\"Cosine similarity between two embedding vectors.\"\"\"
     dot = sum(a * b for a, b in zip(vec_a, vec_b))
@@ -40,7 +41,7 @@ def compute_embedding_similarity(vec_a, vec_b):
 """
 
 CUE_CODE = """\
-// Mossy CUE configuration schema
+// Example CUE configuration schema
 #Service: {
     name:    string
     port:    int & >=1024 & <=65535
@@ -48,7 +49,7 @@ CUE_CODE = """\
 }
 
 middleware: #Service & {
-    name:     "mossy-middleware"
+    name:     "api-middleware"
     port:     8001
     replicas: 2
 }
@@ -86,10 +87,10 @@ def run():
 
     # ── Test 2: C Code ───────────────────────────────────────────────────────
     print("\n[TEST 2] 🔧 C Source Code (.c)")
-    c_path = "/tmp/mossy_test.c"
+    c_path = "/tmp/rag_dispatch_test.c"
     write_tmp(c_path, C_CODE)
     t0 = time.time()
-    chunks = rag.ingest_file(c_path, "mossy_test.c")
+    chunks = rag.ingest_file(c_path, "rag_dispatch_test.c")
     elapsed = time.time() - t0
     context = rag.retrieve_context("What does the factorial function do?")
     found = "factorial" in context
@@ -97,10 +98,10 @@ def run():
 
     # ── Test 3: Python Code ──────────────────────────────────────────────────
     print("\n[TEST 3] 🐍 Python Source Code (.py)")
-    py_path = "/tmp/mossy_test.py"
+    py_path = "/tmp/rag_dispatch_test.py"
     write_tmp(py_path, PYTHON_CODE)
     t0 = time.time()
-    chunks = rag.ingest_file(py_path, "mossy_test.py")
+    chunks = rag.ingest_file(py_path, "rag_dispatch_test.py")
     elapsed = time.time() - t0
     context = rag.retrieve_context("How do you compute cosine similarity?")
     found = "cosine" in context.lower() or "embedding" in context.lower()
@@ -108,12 +109,12 @@ def run():
 
     # ── Test 4: CUE Code ─────────────────────────────────────────────────────
     print("\n[TEST 4] 🏗️  CUE Configuration Language (.cue)")
-    cue_path = "/tmp/mossy_test.cue"
+    cue_path = "/tmp/rag_dispatch_test.cue"
     write_tmp(cue_path, CUE_CODE)
     t0 = time.time()
-    chunks = rag.ingest_file(cue_path, "mossy_test.cue")
+    chunks = rag.ingest_file(cue_path, "rag_dispatch_test.cue")
     elapsed = time.time() - t0
-    context = rag.retrieve_context("What port does the mossy middleware run on?")
+    context = rag.retrieve_context("What port does the api middleware run on?")
     found = "8001" in context
     print(f"         ✅ {chunks} chunks in {elapsed:.3f}s | Retrieval: {'✅ PASS' if found else '❌ FAIL'}")
 

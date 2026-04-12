@@ -39,7 +39,7 @@ class LLMService:
 
         if request.stream:
             async def generate():
-                agent_graph = get_agent_graph()
+                agent_graph = await get_agent_graph()
                 # LangGraph exposes astream. This yields output events natively.
                 # Mode="messages" gives us chunk by chunk token generation.
                 async for msg, metadata in agent_graph.app.astream(
@@ -78,7 +78,7 @@ class LLMService:
             return StreamingResponse(generate(), media_type="text/event-stream")
             
         else:
-            agent_graph = get_agent_graph()
+            agent_graph = await get_agent_graph()
             # Synchronous invocation
             final_state = await agent_graph.app.ainvoke({"messages": lc_messages}, config=config)
             

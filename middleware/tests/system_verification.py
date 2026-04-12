@@ -16,7 +16,7 @@ from app.services.agent_service import get_agent_graph
 from app.services.rag_service import RAGService
 
 async def verify_infrastructure():
-    print("\n--- 🕵️ MOSSY CHATBOT SYSTEM VERIFICATION ---")
+    print("\n--- 🕵️ AGENT CHATBOT SYSTEM VERIFICATION ---")
     
     # 1. Verify Logfire initialization
     print("\n[1/4] Verifying Logfire Configuration...")
@@ -51,7 +51,7 @@ async def verify_infrastructure():
 
     # 3. Verify Agent Logic + Verifier Node Flow
     print("\n[3/4] Verifying Agent Graph + Verifier Logic...")
-    agent_graph = get_agent_graph()
+    agent_graph = await get_agent_graph()
     
     # Simulate a tool failure state
     messages = [

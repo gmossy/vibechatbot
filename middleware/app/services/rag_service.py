@@ -1,7 +1,7 @@
 """
 RAG Service — Retrieval-Augmented Generation Pipeline
 ======================================================
-Handles document ingestion and context retrieval for the Mossy Chatbot.
+Handles document ingestion and context retrieval for the agent chatbot stack.
 
 Architecture:
   - Multi-tenant: FAISS index scoped per user + project
@@ -136,6 +136,12 @@ def _build_docling_converter() -> DocumentConverter:
     )
 
 
+import json
+from pathlib import Path
+
+# ── Project Metadata Configuration ──────────────────────────────────────────
+METADATA_PATH = "./data/projects_metadata.json"
+
 class RAGService:
     """
     Multi-tenant RAG service that ingests documents into per-user FAISS indices
@@ -162,6 +168,42 @@ class RAGService:
             export_type=export_type,
             chunker=HybridChunker(tokenizer="BAAI/bge-small-en-v1.5"),
         )
+
+    def _update_project_metadata(self, filename: str):
+        """Updates the master index with project and file metadata."""
+        os.makedirs(os.path.dirname(METADATA_PATH), exist_ok=True)
+        
+        metadata = {}
+        if os.path.exists(METADATA_PATH):
+            try:
+                with open(METADATA_PATH, "r") as f:
+                    metadata = json.load(f)
+            except Exception:
+                pass
+
+        user_data = metadata.get(self.user_id, {})
+        project_data = user_data.get(self.project_id, {"files": [], "description": f"Documentation and data for project {self.project_id}"})
+        
+        if filename not in project_data["files"]:
+            project_data["files"].append(filename)
+            
+        user_data[self.project_id] = project_data
+        metadata[self.user_id] = user_data
+
+        with open(METADATA_PATH, "w") as f:
+            json.dump(metadata, f, indent=2)
+
+    @staticmethod
+    def list_available_projects(user_id: str) -> dict:
+        """Returns the master list of projects and their descriptions for a user."""
+        if not os.path.exists(METADATA_PATH):
+            return {}
+        try:
+            with open(METADATA_PATH, "r") as f:
+                all_metadata = json.load(f)
+                return all_metadata.get(user_id, {})
+        except Exception:
+            return {}
 
     def _load_or_create_store(self) -> Optional[FAISS]:
         """Lazy-loads the FAISS index from disk. No-ops if already loaded."""
@@ -301,6 +343,10 @@ class RAGService:
                 self.vector_store.save_local(self.persist_dir)
 
             logfire.info("Ingested {n} chunks from {f}", n=len(chunks), f=filename)
+            
+            # ── Step 5: Master Index Update ──────────────────────────────────
+            self._update_project_metadata(filename)
+            
             return len(chunks)
 
     def retrieve_context(self, query: str, k: int = 4) -> str:

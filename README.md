@@ -1,34 +1,28 @@
-# 🤖 Mossy Chatbot (V2)
-**Production-Grade Agentic RAG Pipeline with Docling & LangGraph**
+# 🤖 Agent Chatbot (V2)
+**Autonomous Knowledge Engine with MCP, Obsidian, & Docling**
 
-**Author**: Glenn Mossy, AI and Machine Learning Engineer  
-**Tech Stack**: Python 3.12+, FastAPI, LangGraph, Docling 2.x, FAISS, Ollama, Logfire
+**Tech Stack**: Python 3.12+, LangGraph, Docling 2.x, MCP (Model Context Protocol), FAISS, Ollama
 
 ---
 
 ## 🌟 Executive Summary
-Mossy Chatbot is a state-of-the-art Agentic Chat application built to operate locally and securely. It bridges the aesthetics of **OpenWebUI** with a sophisticated **LangGraph** Python architecture. 
+This project is a **distributed agentic knowledge engine**. It uses a **LangGraph** orchestration layer across local files (Docling), Obsidian vaults (Live Sync), and external databases (via MCP).
 
-It features an **Optimal RAG Pipeline** powered by **Docling 2.x**, enabling high-quality ingestion of multi-format documents (PDFs with OCR, Excel, Word, XML, Source Code) into a layout-aware **FAISS Vector Engine**.
+The system features an **"Index of Indexes"** architecture—allowing the agent to autonomously discover, switch between, and reason across multiple specialized knowledge bases based on the user's intent.
 
 ---
 
 ## 🧩 Architectural Diagram
 
-The system employs a multi-agent **Evaluator-Optimizer** loop combined with a modernized **Docling** RAG pipeline, all unified by **Logfire** distributed tracing.
+The system employs a multi-agent **Evaluator-Optimizer** loop, capable of dynamically calling local tools or remote MCP servers (ArangoDB, OpenSearch).
 
 ```mermaid
 graph TD
     User([User]) <--> UI[OpenWebUI Frontend]
-    UI <-->|Stream API| API[FastAPI Middleware]
+    UI <-->|SSE / API| API[FastAPI Middleware]
     
-    subgraph Observability
-        Logfire[(Logfire Tracing)]
-    end
-    
-    subgraph "FastAPI Middleware (Docker)"
-        API <--> LG[LangGraph Agent Engine]
-        
+    subgraph "Agentic Brain (LangGraph)"
+        API <--> LG[Agent Engine]
         LG --> CoT[Reasoning Agent]
         CoT --> Tools[Tool Executor]
         Tools --> Verifier{Verifier Node}
@@ -59,8 +53,8 @@ graph TD
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/gmossy/mossychatbot.git
-cd mossychatbot
+git clone https://github.com/<your-org>/<your-repo>.git
+cd <your-repo>
 ```
 
 ### 2. Configure the Environment
@@ -115,11 +109,6 @@ The chatbot defaults to **Gemma 2**. You can swap models easily:
 2.  Click **Sign Up**.
 3.  **The first user account created automatically becomes the Administrator**.
 4.  No default passwords are pre-set; you define your own during the initial registration.
-
-**OAuth Integration (Enterprise Mode):**
-If you have configured the **Keycloak** stack (as seen in `docker-compose.yml`), you can log in via the "Keycloak" button. 
-- **Default OAuth Secret**: `mossy_secret_key` (Internal dev only).
-- **Client ID**: `openwebui`.
 
 ---
 

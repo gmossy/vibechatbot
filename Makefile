@@ -1,16 +1,16 @@
-# Mossy Chatbot — Centralized Makefile
-# Run all commands from the project root: /Users/glennmossy/chatbot
+# Agent chatbot stack — centralized Makefile
+# Run all commands from the repository root.
 
 .PHONY: help up down build logs clean run test install
 
 # Variables
 MIDDLEWARE_DIR = middleware
-IMAGE_NAME     = mossy-chatbot-middleware
+IMAGE_NAME     = chatbot-middleware
 PORT           = 8001
 
 help:
 	@echo ""
-	@echo "Mossy Chatbot — Available Commands"
+	@echo "Agent chatbot — available commands"
 	@echo "-----------------------------------"
 	@echo "  make up          Start full stack via Docker (OpenWebUI + Middleware + Ollama)"
 	@echo "  make down        Stop all Docker containers"
@@ -19,8 +19,15 @@ help:
 	@echo "  make run         Run middleware locally (no Docker)"
 	@echo "  make install     Install Python dependencies locally"
 	@echo "  make test        Run all diagnostic tests (RAG, OCR, Stress)"
+	@echo "  make sync-obsidian Stop all Docker containers"
 	@echo "  make clean       Stop containers and remove volumes"
 	@echo ""
+
+sync-obsidian:
+	docker compose exec middleware python3 ingest_obsidian.py
+
+seed-jazz:
+	docker compose exec middleware python3 seed_jazz_graph.py
 
 # ─── Docker Commands ───────────────────────────────────────────
 up:

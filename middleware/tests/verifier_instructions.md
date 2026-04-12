@@ -1,6 +1,6 @@
 # Verifier Node Testing Instructions
 
-This guide explains how to verify the Evaluator-Optimizer loop (Verifier Node) within the Mossy Chatbot.
+This guide explains how to verify the Evaluator-Optimizer loop (Verifier Node) within the agent chatbot stack.
 
 ## 1. Automated Terminal Test
 Run the pre-configured verification script from the `middleware` directory:
@@ -15,7 +15,7 @@ This script simulates a failed tool output and confirms that the Verifier node a
 ## 2. Manual UI Integration Test
 To observe the agent's autonomous self-correction in the OpenWebUI frontend, use the following prompt:
 
-> **"Read the content of the file `/tmp/mossy_hidden_key.txt`. If it doesn't exist, search the web to see if it's a common placeholder name."**
+> **"Read the content of the file `/tmp/verifier_placeholder_key.txt`. If it doesn't exist, search the web to see if it's a common placeholder name."**
 
 ### Expected Behavior:
 1. **Tool Invocation**: The agent calls `read_local_file`.

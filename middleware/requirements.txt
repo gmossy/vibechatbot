@@ -1,5 +1,5 @@
 # ════════════════════════════════════════════════════════
-#  Mossy Chatbot Middleware — Python Dependencies
+#  Middleware — Python dependencies
 #  Last audited: 2026-04-10
 # ════════════════════════════════════════════════════════
 
@@ -17,7 +17,6 @@ python-dotenv>=1.0.1
 httpx>=0.27.0
 
 # ── Authentication ────────────────────────────────────────
-PyJWT>=2.9.0                     # Keycloak token decoding
 
 # ── LangChain / LangGraph ─────────────────────────────────
 langchain>=0.2.0
@@ -43,12 +42,17 @@ Pillow>=10.4.0                   # PIL Image for OCR pre-processing
 # ── Document Generation Tools ─────────────────────────────
 reportlab>=4.2.0                 # PDF generation (create_pdf tool)
 python-docx>=1.1.0               # DOCX generation (create_word_doc tool)
+python-pptx>=0.6.23              # PPTX generation (create_pptx tool)
+python-arango>=7.8.0             # Driver for ArangoDB Graph operations
 
 # ── Web Search ────────────────────────────────────────────
 duckduckgo-search>=6.0.0
 
 # ── Observability ─────────────────────────────────────────
 logfire[fastapi]>=0.50.0         # Distributed tracing for FastAPI + Pydantic
+
+# ── Model Context Protocol (MCP) ──────────────────────────
+mcp>=1.2.1                       # SDK for MCP client/server integration
 
 # ── Resilience ────────────────────────────────────────────
 tenacity>=9.0.0                  # Exponential backoff for LLM + web search calls

@@ -2,11 +2,24 @@
 Main Server Application Module.
 This module provisions the FastAPI framework heavily integrated with LangGraph and FAISS.
 """
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routers import chat, documents
-from app.core.config import settings
+
+from app.api.routers import chat, documents, generated_files
+from app.core.config import settings, build_cors_middleware_args
+from app.services.agent_service import get_agent_graph
 import logfire
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        await get_agent_graph()
+    except Exception as e:
+        logfire.warn("Agent graph pre-warm failed", error=str(e))
+    yield
 
 # Initialize Logfire
 logfire.configure(
@@ -18,19 +31,14 @@ logfire.instrument_pydantic()
 # Explicitly configure Swagger UI (docs) and ReDoc
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="Mossy Chatbot API utilizing LangGraph Agents and OpenWebUI.",
+    description="OpenAI-compatible API for LangGraph agents, RAG, and OpenWebUI.",
     version=settings.VERSION,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",      # Swagger UI endpoint
-    redoc_url="/redoc"     # ReDoc endpoint
+    redoc_url="/redoc",    # ReDoc endpoint
+    lifespan=lifespan,
 )
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, **build_cors_middleware_args())
 
 # Instrument FastAPI with Logfire for deep observability
 logfire.instrument_fastapi(app)
@@ -39,6 +47,7 @@ logfire.instrument_fastapi(app)
 app.include_router(chat.router, prefix=settings.API_V1_STR, tags=["chat"])
 # Include the RAG and database ingestion endpoints
 app.include_router(documents.router, prefix=settings.API_V1_STR, tags=["documents"])
+app.include_router(generated_files.router, prefix=settings.API_V1_STR, tags=["generated_files"])
 
 @app.get("/health")
 def health_check():

@@ -15,19 +15,15 @@ async def chat_completions(
     return await LLMService.generate_response(request, user_id=user_id)
 
 @router.get("/models")
-async def get_models() -> Dict[str, Any]:
+async def get_models(
+    _user_id: str = Depends(get_current_user),
+) -> Dict[str, Any]:
     # Provide a stubbed list of models based on Gemma size suitable for MBP 48GB.
     return {
         "object": "list",
         "data": [
             {
-                "id": "gemma:7b", 
-                "object": "model", 
-                "created": int(time.time()), 
-                "owned_by": "google"
-            },
-            {
-                "id": "gemma2:9b", 
+                "id": "gemma4", 
                 "object": "model", 
                 "created": int(time.time()), 
                 "owned_by": "google"

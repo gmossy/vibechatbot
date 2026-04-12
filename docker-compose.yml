@@ -3,20 +3,16 @@
 services:
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
-    container_name: mossy-openwebui
+    container_name: chatbot-openwebui
     ports:
       - "3000:8080"
     environment:
       - OPENAI_API_BASE_URL=http://middleware:8001/v1
-      - OPENAI_API_KEY=mossy-secret-key
+      - OPENAI_API_KEY=${API_KEY:-local-dev-api-key}
       - HF_TOKEN=${HF_TOKEN}
       - DEFAULT_MODELS=gemma4
       - WEBUI_AUTH=true
-      - ENABLE_OAUTH_SIGNUP=true
-      - OAUTH_CLIENT_ID=openwebui
-      - OAUTH_CLIENT_SECRET=mossy_secret_key
-      - OAUTH_PROVIDER_NAME=Keycloak
-      - OPENID_PROVIDER_URL=http://keycloak:8080/realms/mossy/.well-known/openid-configuration
+      - ENABLE_OAUTH_SIGNUP=false
     volumes:
       - openwebui_data:/app/backend/data
     depends_on:
@@ -27,45 +23,40 @@ services:
     build:
       context: ./middleware
       dockerfile: Dockerfile
-    container_name: mossy-middleware
+    container_name: chatbot-middleware
     ports:
       - "8001:8001"
     volumes:
-      - ./middleware/app:/app/app
+      - ./middleware:/app
+      - ${OBSIDIAN_VAULT_PATH:-./obsidian_vault_placeholder}:/app/obsidian_vault:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      # Use http://host.docker.internal:11434 if running Ollama natively on Mac
-      - OLLAMA_BASE_URL=http://ollama:11434
+      # Use http://host.docker.internal:11434 to make it FAST on your M5 Pro Max!
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      # Must match OPENAI_API_KEY on openwebui so the UI can call the middleware.
+      - API_KEY=${API_KEY:-local-dev-api-key}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       - HF_TOKEN=${HF_TOKEN}
       - LOGFIRE_TOKEN=${LOGFIRE_TOKEN}
       - LOGFIRE_PROJECT_NAME=${LOGFIRE_PROJECT_NAME:-vibechatbot}
       - DOCLING_ALLOW_EXTERNAL_PLUGINS=true
-    depends_on:
-      - ollama
+    # depends_on:
+    #   - ollama
     restart: always
 
-
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: mossy-ollama
+  arangodb:
+    image: arangodb:3.11
+    container_name: chatbot-arangodb
+    environment:
+      - ARANGO_NO_AUTH=1 # Simplified for local dev
     ports:
-      - "11434:11434"
+      - "8529:8529"
     volumes:
-      - ollama_data:/root/.ollama
+      - arangodb_data:/var/lib/arangodb3
     restart: always
-    # -----------------------------------------------------------------------------------------
-    # IMPORTANT MAC M5 PRO MAX GPU NOTE:
-    # Docker Desktop on macOS does NOT pass through the Apple Silicon Metal GPU to containers. 
-    # Running Ollama in this Docker container will use your CPU and be very slow.
-    # 
-    # For optimal performance (making it as fast as ChatGPT):
-    # 1. Download and install Ollama for Mac natively from https://ollama.com
-    # 2. Run `OLLAMA_HOST=0.0.0.0 ollama serve` in a terminal window.
-    # 3. Change `OLLAMA_BASE_URL` in the `middleware` service (above) to point to your Mac:
-    #    - OLLAMA_BASE_URL=http://host.docker.internal:11434
-    # 4. Comment out or delete this `ollama` block from the docker-compose.yml.
-    # -----------------------------------------------------------------------------------------
-    
+
 volumes:
   openwebui_data:
   ollama_data:
+  arangodb_data:

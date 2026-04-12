@@ -1,6 +1,6 @@
 # Agentic AI Best Practices
 
-This document outlines the architectural principles and coding standards for the Mossy Chatbot, drawing from industry leaders such as Anthropic, Google DeepMind, and LangChain.
+This document outlines architectural principles and coding standards for this agent chatbot project, drawing from industry leaders such as Anthropic, Google DeepMind, and LangChain.
 
 ## 1. Architectural Philosophy: Workflows over Raw Agents
 

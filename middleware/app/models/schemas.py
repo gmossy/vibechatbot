@@ -15,7 +15,7 @@ class Message(BaseModel):
     }
     
 class ChatCompletionRequest(BaseModel):
-    model: str = Field(default="gemma2", description="The LLM model to use (e.g., gemma2, llama3).")
+    model: str = Field(default="gemma4", description="The LLM model to use (e.g., gemma4, llama3).")
     messages: List[Message]
     stream: Optional[bool] = Field(default=False, description="Whether to stream the response as server-sent events.")
     temperature: Optional[float] = Field(default=0.7, description="Sampling temperature (0.0 to 1.0).")
@@ -24,9 +24,9 @@ class ChatCompletionRequest(BaseModel):
     model_config = {
         "json_schema_extra": {
             "example": {
-                "model": "gemma2",
+                "model": "gemma4",
                 "messages": [
-                    {"role": "user", "content": "What is the primary objective of the mossychatbot repository?"}
+                    {"role": "user", "content": "What is the primary objective of this repository?"}
                 ],
                 "stream": False,
                 "temperature": 0.5
